@@ -45,9 +45,7 @@ resource "hcloud_server" "masters" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/init.sh",
-      "/tmp/init.sh",
-      "hostnamectl set-hostname k8s-master-${count.index + 1}",
-      "echo '127.0.0.1 k8s-master-${count.index + 1}' >> /etc/hosts"
+      "/tmp/init.sh"
     ]
   }
 
@@ -67,7 +65,7 @@ resource "null_resource" "init_first_master" {
     # --ignore-preflight-errors=NumCPU in order to use smaller type than CX21 current type is CX11; 2VCpus is required for k8s
     # --pod-network-cidr must match CNI's cidr
     inline = [
-      "sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU",
+      "sudo kubeadm init ${var.kubernetes_api_dns != "" ? "--control-plane-endpoint=${var.kubernetes_api_dns}" : ""} ${var.kubernetes_api_dns} --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU",
       "mkdir -p /root/.kube",
       "sudo cp -i /etc/kubernetes/admin.conf /root/.kube/config",
       "sudo chown $(id -u):$(id -g) /root/.kube/config"
@@ -110,15 +108,14 @@ resource "null_resource" "join_other_masters" {
     ]
   }
 
-
-  # join cluster as master
-  provisioner "remote-exec" {
-    inline = [
-      "JOIN_CMD=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubeadm --kubeconfig=/etc/kubernetes/admin.conf token create --print-join-command')",
-      "CA_CERT_HASH=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl pkey -pubin -outform der | openssl dgst -sha256 -hex | sed 's/^.* //')",
-      "sudo $JOIN_CMD --control-plane --discovery-token-ca-cert-hash sha256:$CA_CERT_HASH --cri-socket=/run/containerd/containerd.sock"
-    ]
-  }
+provisioner "remote-exec" {
+  inline = [
+    "ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubeadm init phase upload-certs --upload-certs > /tmp/JOIN_CERT'",
+    "JOIN_CERT=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'cat /tmp/CERT | grep -oE \"[0-9a-f]{64}\"')",
+    "JOIN_CMD=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubeadm --kubeconfig=/etc/kubernetes/admin.conf token create --print-join-command')",
+    "$JOIN_CMD --control-plane --certificate-key $JOIN_CERT"
+  ]
+}
 
 }
 
@@ -152,9 +149,7 @@ resource "hcloud_server" "workers" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/init.sh",
-      "/tmp/init.sh",
-      "hostnamectl set-hostname k8s-worker-${count.index + 1}",
-      "echo '127.0.0.1 k8s-worker-${count.index + 1}' >> /etc/hosts"
+      "/tmp/init.sh"
     ]
   }
 
@@ -167,10 +162,10 @@ resource "hcloud_server" "workers" {
 
   # join cluster as worker
   provisioner "remote-exec" {
-    inline = [
-      "JOIN_CMD=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubeadm --kubeconfig=/etc/kubernetes/admin.conf token create --print-join-command')",
-      "$JOIN_CMD"
-    ]
+  inline = [
+    "JOIN_CMD=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubeadm --kubeconfig=/etc/kubernetes/admin.conf token create --print-join-command')",
+    "$JOIN_CMD"
+  ]
   }
 }
 
@@ -185,7 +180,7 @@ resource "null_resource" "install_cni" {
     destination = "/tmp/flannel.sh"
   }
   provisioner "file" {
-    source      = "cni/flannel.sh"
+    source      = "cni/cilium.sh"
     destination = "/tmp/cilium.sh"
   }
   # add 
@@ -255,4 +250,9 @@ output "master_ips" {
 output "worker_ips" {
   value       = hcloud_server.workers.*.ipv4_address
   description = "IP addresses of the worker nodes"
+}
+
+output "kubeconfig" {
+  value = "ssh -i keys/id_ed25519 -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'cat /etc/kubernetes/admin.conf' > config"
+  description = "Get kubeconfig file by running this command"
 }
