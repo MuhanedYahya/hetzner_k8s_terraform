@@ -1,2 +1,5 @@
 terraform.tfvars
 .terraform
+keys/id_*
+.gitignore
+.terraform*

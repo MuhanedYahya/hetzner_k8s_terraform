@@ -42,3 +42,11 @@ variable "kubernetes_api_dns" {
   type        = string
   default     = ""
 }
+
+variable "ssh_public_key_path" {
+  description = "Path to the SSH public key file"
+}
+
+variable "ssh_private_key_path" {
+  description = "Path to the SSH public key file"
+}
