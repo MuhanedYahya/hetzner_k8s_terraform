@@ -66,7 +66,7 @@ resource "null_resource" "init_first_master" {
   provisioner "remote-exec" {
     # --ignore-preflight-errors=NumCPU in order to use smaller type than CX21 current type is CX11; 2VCpus is required for k8s
     inline = [
-      "sudo kubeadm init --pod-network-cidr=10.0.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU",
+      "sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU",
       "mkdir -p /root/.kube",
       "sudo cp -i /etc/kubernetes/admin.conf /root/.kube/config",
       "sudo chown $(id -u):$(id -g) /root/.kube/config"
@@ -102,7 +102,7 @@ resource "null_resource" "join_other_masters" {
   }
 
   # add private key
-    provisioner "remote-exec" {
+  provisioner "remote-exec" {
     inline = [
       "cp /tmp/id_ed25519 ~/.ssh/",
       "chmod 400 ~/.ssh/id_ed25519",
@@ -128,6 +128,7 @@ resource "hcloud_server" "workers" {
   image       = var.image
   server_type = var.worker_type
   ssh_keys    = [hcloud_ssh_key.hcloud_ssh_public_key.id]
+  depends_on = [null_resource.install_cni]
   network {
     network_id = hcloud_network_subnet.k8s_subnet.network_id
   }
@@ -156,7 +157,7 @@ resource "hcloud_server" "workers" {
     ]
   }
 
-    provisioner "remote-exec" {
+  provisioner "remote-exec" {
     inline = [
       "cp /tmp/id_ed25519 ~/.ssh/",
       "chmod 400 ~/.ssh/id_ed25519",
@@ -177,17 +178,32 @@ resource "hcloud_server" "workers" {
 resource "null_resource" "install_cni" {
   count = var.masters_count > 0 ? 1 : 0
 
+  # add CNI files
+  provisioner "file" {
+    source      = "cni/flannel.sh"
+    destination = "/tmp/flannel.sh"
+  }
+  provisioner "file" {
+    source      = "cni/flannel.sh"
+    destination = "/tmp/cilium.sh"
+  }
+  # add 
+
+  # install helm
   provisioner "remote-exec" {
     inline = [
-      "if [ \"${var.cni}\" == \"flannel\" ]; then",
-      "kubectl create ns kube-flannel",
-      "kubectl label --overwrite ns kube-flannel pod-security.kubernetes.io/enforce=privileged",
-      "helm repo add flannel https://flannel-io.github.io/flannel/",
-      "helm install flannel --set podCidr=\"10.244.0.0/16\" --namespace kube-flannel flannel/flannel",
-      "elif [ \"${var.cni}\" == \"cilium\" ]; then",
-      "helm repo add cilium https://helm.cilium.io/",
-      "helm install cilium cilium/cilium --namespace kube-system",
-      "fi"
+      "curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3",
+      "chmod 700 get_helm.sh",
+      "./get_helm.sh"
+    ]
+  }
+
+  # install CNI
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/flannel.sh",
+      "chmod +x /tmp/cilium.sh",
+      "/tmp/${var.cni}.sh"
     ]
   }
 
