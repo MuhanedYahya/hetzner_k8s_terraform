@@ -65,6 +65,7 @@ resource "null_resource" "init_first_master" {
   }
   provisioner "remote-exec" {
     # --ignore-preflight-errors=NumCPU in order to use smaller type than CX21 current type is CX11; 2VCpus is required for k8s
+    # --pod-network-cidr must match CNI's cidr
     inline = [
       "sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU",
       "mkdir -p /root/.kube",
