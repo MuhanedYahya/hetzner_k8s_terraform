@@ -38,15 +38,9 @@ variable "image" {
 }
 
 variable "kubernetes_api_dns" {
-  description = "Kubernetes API DNS name (optional)"
+  description = "Kubernetes API DNS name (optional) => LOAD_BALANCER_DNS:LOAD_BALANCER_PORT"
   type        = string
   default     = ""
-}
-
-variable "kubernetes_api_port" {
-  description = "Kubernetes API DNS name (optional)"
-  type        = string
-  default     = "6433"
 }
 
 variable "ssh_public_key_path" {

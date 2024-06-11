@@ -42,7 +42,7 @@ resource "null_resource" "init_first_master" {
     # --ignore-preflight-errors=NumCPU in order to use smaller type than CX21 current type is CX11; 2VCpus is required for k8s
     # --pod-network-cidr must match CNI's cidr
     # for production
-    # "sudo kubeadm init ${var.kubernetes_api_dns != "" ? "--control-plane-endpoint=${var.kubernetes_api_dns}:${var.kubernetes_api_port}" : ""} ${var.kubernetes_api_dns} --apiserver-advertise-address ${hcloud_server.masters[0].ipv4_address} --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU""sudo kubeadm init ${var.kubernetes_api_dns != "" ? "--control-plane-endpoint=${var.kubernetes_api_dns}:${var.kubernetes_api_port}" : ""} ${var.kubernetes_api_dns} --apiserver-advertise-address ${hcloud_server.masters[0].ipv4_address} --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU"
+    # "sudo kubeadm init ${var.kubernetes_api_dns != "" ? "--control-plane-endpoint=${var.kubernetes_api_dns}" : ""} ${var.kubernetes_api_dns} --apiserver-advertise-address ${hcloud_server.masters[0].ipv4_address} --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU"
     inline = [
       "sudo kubeadm init --control-plane-endpoint=${hcloud_server.masters[0].ipv4_address}:6443 --apiserver-advertise-address ${hcloud_server.masters[0].ipv4_address} --pod-network-cidr=10.244.0.0/16 --cri-socket=/run/containerd/containerd.sock --ignore-preflight-errors=NumCPU",
       "mkdir -p /root/.kube",
