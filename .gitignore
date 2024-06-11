@@ -1,5 +1,6 @@
 terraform.tfvars
 .terraform
 keys/id_*
+keys/connect.sh
 .gitignore
 .terraform*

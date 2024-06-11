@@ -28,7 +28,7 @@ variable "master_type" {
 variable "worker_type" {
   description = "Hetzner Cloud server type for worker nodes"
   type        = string
-  default     = "cx21"
+  default     = "cx11"
 }
 
 variable "image" {
