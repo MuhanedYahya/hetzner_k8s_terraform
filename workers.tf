@@ -43,7 +43,8 @@ resource "hcloud_server" "workers" {
   provisioner "remote-exec" {
     inline = [
       "JOIN_CMD=$(ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubeadm --kubeconfig=/etc/kubernetes/admin.conf token create --print-join-command')",
-      "$JOIN_CMD"
+      "$JOIN_CMD",
+      "ssh -o StrictHostKeyChecking=no root@${hcloud_server.masters[0].ipv4_address} 'kubectl label nodes k8s-worker-${count.index + 1} node-role.kubernetes.io/worker=worker'"
     ]
   }
 }

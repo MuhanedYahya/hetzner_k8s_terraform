@@ -43,6 +43,12 @@ variable "kubernetes_api_dns" {
   default     = ""
 }
 
+variable "kubernetes_api_port" {
+  description = "Kubernetes API DNS name (optional)"
+  type        = string
+  default     = "6433"
+}
+
 variable "ssh_public_key_path" {
   description = "Path to the SSH public key file"
 }

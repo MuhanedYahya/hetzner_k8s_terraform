@@ -57,7 +57,7 @@ resource "null_resource" "install_cni" {
   }
 }
 
-
+# update hosts with workers & masters IP Addresses
 resource "null_resource" "update_hosts" {
   count = var.masters_count + var.workers_count
 
