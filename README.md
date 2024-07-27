@@ -27,14 +27,14 @@ mv terraform.tfvars.example terraform.tfvars
 
 ```bash
 hcloud_token         = "YOUR_TOKEN"
-hcloud_network_range = "192.168.0.0/16"
-hcloud_subnet_range  = "192.168.1.0/24"
+hcloud_network_range = "10.0.0.0/8"
+hcloud_subnet_range  = "10.244.0.0/16"
 master_count         = 1  # use uneven numbers 1 || 3 || 5  ..
 worker_count         = 1
 master_type          = "cpx21"
-worker_type          = "cpx21"
-cni                  = "cilium"
-cidr                 = "10.244.0.0/16"
+worker_type          = "cpx31"
+cni                  = "flannel"
+cidr                 = "192.168.0.0/16"
 image                = "SNAPSHOT_ID"
 ssh_public_key_path  = "./keys/id_ed25519.pub"
 ssh_private_key_path = "./keys/id_ed25519"
